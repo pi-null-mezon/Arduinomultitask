@@ -2,7 +2,7 @@ This repo contains an Arduino platform library and some examples of how to work 
 
 How to use:
 
- 1) Library catalogue "MirmPS" hould be copied to the Arduino IDE libraries location
+ 1) Library catalogue "MirmPS" should be copied to the Arduino IDE libraries location
  
  2) Try example [RGBLed](https://github.com/pi-null-mezon/Arduinomultitask/blob/master/RGBLed/RGBLed.ino), where each one of three light channels work in independent event loop 
 
