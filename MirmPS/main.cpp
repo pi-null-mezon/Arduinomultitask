@@ -1,81 +1,94 @@
 #include <Arduino.h>
 #include "MirmPS.h"
 
-volatile byte taskNum = 0; 
+volatile unsigned int _sppos;
 
 ISR(TIMER2_OVF_vect,ISR_NAKED)
 {
-saveContext();				// Сохраняем контекст.
+saveContext();				// РЎРѕС…СЂР°РЅСЏРµРј РєРѕРЅС‚РµРєСЃС‚.
 
-copyStackPointer(SPstore[taskNum]);	
-taskNum = (taskNum+1) % 3;	
-loadStackPointer(SPstore[taskNum]);
-					// Сохраняем один SP
-loadContext();				//Загружаем новый контекст.
+_sppos = SPH*0x0100+SPL; 
 
-asm("reti");				//Возврат из прерывания.
+if(_sppos < 0x0501) 	// РћС‡РµРЅСЊ РіР»СѓРїС‹Р№ СЃРїРѕСЃРѕР± РІС‹С‡РёСЃР»РµРЅРёСЏ Р°РєС‚РёРІРЅРѕРіРѕ РїРѕС‚РѕРєР°.
+{
+  copyStackPointer(SPstore[2]);		
+  loadStackPointer(SPstore[1]);
+}				// РЎРѕС…СЂР°РЅСЏРµРј РѕРґРёРЅ SP
+else if(_sppos < 0x0700)					
+{				// Р Р·Р°РіСЂСѓР¶Р°РµРј РґСЂСѓРіРѕР№.
+  copyStackPointer(SPstore[1]);
+  loadStackPointer(SPstore[0]);
+} else {
+  copyStackPointer(SPstore[0]);
+  loadStackPointer(SPstore[2]);
+}
+
+loadContext();				//Р—Р°РіСЂСѓР¶Р°РµРј РЅРѕРІС‹Р№ РєРѕРЅС‚РµРєСЃС‚.
+asm("reti");				//Р’РѕР·РІСЂР°С‚ РёР· РїСЂРµСЂС‹РІР°РЅРёСЏ.
 }
 
 volatile void programm1 (void);
 volatile void programm2 (void);
 volatile void programm3 (void);
 
-volatile SPstore_t SPstore[3];		// Здесь храняться указатели стека
-					// сохраненных потоков.
-volatile int Taskcount=0;		// Это счетчик выходов из ветвителя. 
+volatile SPstore_t SPstore[3];		// Р—РґРµСЃСЊ С…СЂР°РЅСЏС‚СЊСЃСЏ СѓРєР°Р·Р°С‚РµР»Рё СЃС‚РµРєР°
+					// СЃРѕС…СЂР°РЅРµРЅРЅС‹С… РїРѕС‚РѕРєРѕРІ.
+volatile byte Taskcount=0;		// Р­С‚Рѕ СЃС‡РµС‚С‡РёРє РІС‹С…РѕРґРѕРІ РёР· РІРµС‚РІРёС‚РµР»СЏ. 
 
 void branching(void)__attribute__((always_inline));
 void branching_2 (void)__attribute__((naked,noinline));
 
 void branching(void)
-{	setStackPointer(0x04,0xFF);	// установка SP в RAMEND
-	branching_2();			// точка вызова процедуры 
-					// копирования.
+{	setStackPointer(0x08,0xFF);	// СѓСЃС‚Р°РЅРѕРІРєР° SP РІ RAMEND Atmega328P (РґР»СЏ Atmega 168 СЌС‚Рѕ Р±СѓРґРµС‚ 0x04FF)
+	branching_2();			// С‚РѕС‡РєР° РІС‹Р·РѕРІР° РїСЂРѕС†РµРґСѓСЂС‹ 
+					// РєРѕРїРёСЂРѕРІР°РЅРёСЏ.
 
-//В эту точку возвращаются новые потоки. 
+//Р’ СЌС‚Сѓ С‚РѕС‡РєСѓ РІРѕР·РІСЂР°С‰Р°СЋС‚СЃСЏ РЅРѕРІС‹Рµ РїРѕС‚РѕРєРё. 
 
-//векторы выхода потоков из ветвителя:
+//РІРµРєС‚РѕСЂС‹ РІС‹С…РѕРґР° РїРѕС‚РѕРєРѕРІ РёР· РІРµС‚РІРёС‚РµР»СЏ:
 	
-	if (Taskcount==0) {Taskcount++;programm1();}
-	if (Taskcount==1) {Taskcount++;programm2();}
-	if (Taskcount==2) {Taskcount++;programm3();}
+	if (Taskcount==0) {Taskcount++; programm1();}
+	if (Taskcount==1) {Taskcount++; programm2();}
+	if (Taskcount==2) {programm3();}
 }
 
 void branching_2 (void)
-{	saveContext();				//Сохраняем
-	SPstore[1].i=copyContext(0x0484);
-	SPstore[2].i=copyContext(0x040A);	//Копируем
-	loadContext();				//Загружаем
+{	saveContext();				//РЎРѕС…СЂР°РЅСЏРµРј
+
+	SPstore[1].i=copyContext(0x0700); // Р Р°Р·Р±РёРІР°РµРј РєСѓС‡Сѓ SRAM Atmega328P РЅР° С‡РµС‚С‹СЂРµ РєСѓСЃРєР° Рё РѕС‚РґР°С‘Рј РєСѓСЃРєРё РЅР°С€РёРј РїРѕС‚РѕРєР°Рј
+	SPstore[2].i=copyContext(0x0501);	
+
+	loadContext();				//Р—Р°РіСЂСѓР¶Р°РµРј
 		
-//т.к. функция naked, нужно явно объявить возврат
-	asm("ret");				//Возвращаемся.		
+//С‚.Рє. С„СѓРЅРєС†РёСЏ naked, РЅСѓР¶РЅРѕ СЏРІРЅРѕ РѕР±СЉСЏРІРёС‚СЊ РІРѕР·РІСЂР°С‚
+	asm("ret");				//Р’РѕР·РІСЂР°С‰Р°РµРјСЃСЏ.		
 }
 
 void loop1(void);
-void loop2(void);          //Функции реализованы в скетче.              
+void loop2(void);          //Р¤СѓРЅРєС†РёРё СЂРµР°Р»РёР·РѕРІР°РЅС‹ РІ СЃРєРµС‚С‡Рµ.              
 void loop3(void); 
 
  int main (void)__attribute__((__noreturn__));
 
-int main(void)                      //Точка входа программы.
+int main(void)                      //РўРѕС‡РєР° РІС…РѕРґР° РїСЂРѕРіСЂР°РјРјС‹.
 {
-	init();     //Настройка ядра Ардуино. В основном таймеры.
-	cli();      //init() разрешает прерывания. но 
-                    //нам они пока не нужны
+	init();     //РќР°СЃС‚СЂРѕР№РєР° СЏРґСЂР° РђСЂРґСѓРёРЅРѕ. Р’ РѕСЃРЅРѕРІРЅРѕРј С‚Р°Р№РјРµСЂС‹.
+	cli();      //init() СЂР°Р·СЂРµС€Р°РµС‚ РїСЂРµСЂС‹РІР°РЅРёСЏ. РЅРѕ 
+                    //РЅР°Рј РѕРЅРё РїРѕРєР° РЅРµ РЅСѓР¶РЅС‹
 	branching();   
-        return 0;   //Сюда программа не попадёт.
+        return 0;   //РЎСЋРґР° РїСЂРѕРіСЂР°РјРјР° РЅРµ РїРѕРїР°РґС‘С‚.
 }
 
-volatile void programm1(void){	//А это два наших потока.
-sei(); 	setup();     //Первый поток вызывает также cодержит      
-	for (;;) {loop1();  //функцию setup.И разрешает прерывания.
+volatile void programm1(void){	//Рђ СЌС‚Рѕ РґРІР° РЅР°С€РёС… РїРѕС‚РѕРєР°.
+sei(); 	setup();     //РџРµСЂРІС‹Р№ РїРѕС‚РѕРє РІС‹Р·С‹РІР°РµС‚ С‚Р°РєР¶Рµ cРѕРґРµСЂР¶РёС‚      
+	for (;;) {loop1();  //С„СѓРЅРєС†РёСЋ setup.Р СЂР°Р·СЂРµС€Р°РµС‚ РїСЂРµСЂС‹РІР°РЅРёСЏ.
 	}
-}                                       //За их вызов ответственна
+}                                       //Р—Р° РёС… РІС‹Р·РѕРІ РѕС‚РІРµС‚СЃС‚РІРµРЅРЅР°
 
 volatile void programm2 (void){
-for (;;) {loop2();}                      //функция branching()
+for (;;) {loop2();}                      //С„СѓРЅРєС†РёСЏ branching()
 }
 
 volatile void programm3 (void){
-for (;;) {loop3();}                      //функция branching()
+for (;;) {loop3();}                      //С„СѓРЅРєС†РёСЏ branching()
 }

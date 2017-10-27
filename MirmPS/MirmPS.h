@@ -3,18 +3,18 @@
 #ifndef Mirm_PS_h
 #define Mirm_PS_h
 
-typedef volatile union Spt			//Определяем тип для хранения 
-{int i;								//StackPointer; Определение
-char c[2];							//на основе union позволит
-} SPstore_t;						//обращаться со значением
-                                    //и как с int и как с char[2]
+typedef volatile union Spt			//РћРїСЂРµРґРµР»СЏРµРј С‚РёРї РґР»СЏ С…СЂР°РЅРµРЅРёСЏ 
+{int i;								//StackPointer; РћРїСЂРµРґРµР»РµРЅРёРµ
+char c[2];							//РЅР° РѕСЃРЅРѕРІРµ union РїРѕР·РІРѕР»РёС‚
+} SPstore_t;						//РѕР±СЂР°С‰Р°С‚СЊСЃСЏ СЃРѕ Р·РЅР°С‡РµРЅРёРµРј
+                                    //Рё РєР°Рє СЃ int Рё РєР°Рє СЃ char[2]
 
-extern SPstore_t SPstore[3];    //Определение массива на два стека
+extern SPstore_t SPstore[3];    //РћРїСЂРµРґРµР»РµРЅРёРµ РјР°СЃСЃРёРІР° РЅР° РґРІР° СЃС‚РµРєР°
 
-//прямая установка StackPointer.
+//РїСЂСЏРјР°СЏ СѓСЃС‚Р°РЅРѕРІРєР° StackPointer.
 #define setStackPointer(x,y) {SPH=x;SPL=y;}   
 
-//макросы для работы с SPstore. Запись и Чтение.
+//РјР°РєСЂРѕСЃС‹ РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ SPstore. Р—Р°РїРёСЃСЊ Рё Р§С‚РµРЅРёРµ.
 #define copyStackPointer(x) {x.c[1]=SPH;x.c[0]=SPL;}  
 #define loadStackPointer(x) {SPH=x.c[1];SPL=x.c[0];} 
 
