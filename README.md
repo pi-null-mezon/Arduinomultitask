@@ -5,7 +5,9 @@ Multitasking on Arduino became simple! Do not belive me? Take a look:
 #include <MirmPS_assemf.h>
 
 void setup() {
-
+	// MANAGE TASK PRIORITIES
+	byte _vp[] = {75,25,0}; // think about this numbers as percents of the MCU load per task   
+	set_tasks_priorities(_vp);
 }
 
 void loop1() {
