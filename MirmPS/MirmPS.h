@@ -3,13 +3,24 @@
 #ifndef Mirm_PS_h
 #define Mirm_PS_h
 
+#define TASK_LOOPS_NUM 3	// Define number of loops
+							// Note however that loops are hardcoded,
+							// so do not think that this define
+							// could be changed without hardcode
+							
+extern volatile byte task_absolute_priority_vector[]; // absolute priority equals to the number of task repeats 
+
+// This function should be used to manage tasks priority									
+void set_tasks_priorities(byte _vpriority[]); // 
+														
 typedef volatile union Spt			//Определяем тип для хранения 
-{int i;								//StackPointer; Определение
-char c[2];							//на основе union позволит
+{
+	int i;								//StackPointer; Определение
+	char c[2];							//на основе union позволит
 } SPstore_t;						//обращаться со значением
                                     //и как с int и как с char[2]
-
-extern SPstore_t SPstore[3];    //Определение массива на два стека
+																	
+extern SPstore_t SPstore[TASK_LOOPS_NUM];    //Определение массива на три стека
 
 //прямая установка StackPointer.
 #define setStackPointer(x,y) {SPH=x;SPL=y;}   
